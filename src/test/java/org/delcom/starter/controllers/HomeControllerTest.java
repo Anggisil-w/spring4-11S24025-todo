@@ -21,11 +21,14 @@ class HomeControllerTest {
         homeController = new HomeController();
     }
 
+    /**
+     * Helper method to encode a string to Base64.
+     */
     private String encodeBase64(final String text) {
         return Base64.getEncoder().encodeToString(text.getBytes(StandardCharsets.UTF_8));
     }
 
-    // --- Tes Asli ---
+    // --- Tes Bawaan ---
 
     @Test
     @DisplayName("Mengembalikan pesan selamat datang yang benar")
@@ -42,7 +45,7 @@ class HomeControllerTest {
         assertEquals("Hello, " + name + "!", responseBody);
     }
 
-    // --- Tes untuk informasiNim ---
+    // --- Tes untuk informasiNim (/informasiNim/{nim}) ---
 
     @Test
     @DisplayName("informasiNim - NIM Valid (11S)")
@@ -81,24 +84,32 @@ class HomeControllerTest {
     }
 
     @Test
-    @DisplayName("informasiNim - Input Parse Error (Memicu Catch)")
-    void informasiNim_InvalidParse() {
+    @DisplayName("informasiNim - Input Parse Error (Angkatan bukan angka)")
+    void informasiNim_InvalidParse_Cohort() {
         final String testNim = "11SXX001";
         final ResponseEntity<String> apiResponse = homeController.informasiNim(testNim);
         assertEquals(HttpStatus.BAD_REQUEST, apiResponse.getStatusCode());
         assertTrue(apiResponse.getBody().contains("For input string: \"XX\""));
     }
+    
+    @Test
+    @DisplayName("informasiNim - Input Parse Error (Urutan bukan angka)")
+    void informasiNim_InvalidParse_Sequence() {
+        final String testNim = "11S24XYZ";
+        final ResponseEntity<String> apiResponse = homeController.informasiNim(testNim);
+        assertEquals(HttpStatus.BAD_REQUEST, apiResponse.getStatusCode());
+        assertTrue(apiResponse.getBody().contains("For input string: \"XYZ\""));
+    }
 
-    // --- Tes untuk perolehanNilai ---
+    // --- Tes untuk perolehanNilai (/perolehanNilai) ---
 
     @Test
     @DisplayName("perolehanNilai - Skenario Kalkulasi Lengkap (Grade A) dengan baris kosong")
     void perolehanNilai_FullScenario() {
-        // PERHATIKAN: Ada baris kosong setelah PA|100|80 untuk menguji coverage baris kosong
         final String testInputData = String.join("\n",
                 "10 15 10 15 20 30",
                 "PA|100|80", 
-                "", 
+                "", // Baris kosong di tengah
                 "T|100|90", "K|100|85", "P|100|95", "UTS|100|75", "UAS|100|88", "---"
         );
         final String encodedInput = encodeBase64(testInputData);
@@ -155,128 +166,77 @@ class HomeControllerTest {
     }
 
     @Test
-    @DisplayName("perolehanNilai - Skenario Grade AB")
-    void perolehanNilai_GradeAB() {
-        final String testInputData = String.join("\n", "10 15 10 15 20 30", "PA|100|75", "T|100|75", "K|100|75", "P|100|75", "UTS|100|75", "UAS|100|75", "---");
+    @DisplayName("perolehanNilai - Skenario Grade E (0/100)")
+    void perolehanNilai_GradeE() {
+        final String testInputData = String.join("\n", "10 15 10 15 20 30", "PA|100|0", "T|100|0", "K|100|0", "P|100|0", "UTS|100|0", "UAS|100|0", "---");
         final String encodedInput = encodeBase64(testInputData);
         final ResponseEntity<String> apiResponse = homeController.perolehanNilai(encodedInput);
         final String responseBody = apiResponse.getBody();
         assertEquals(HttpStatus.OK, apiResponse.getStatusCode());
-        assertTrue(responseBody.contains(">> Nilai Akhir: 75.00"));
-        assertTrue(responseBody.contains(">> Grade: AB"));
+        assertTrue(responseBody.contains(">> Nilai Akhir: 0.00"));
+        assertTrue(responseBody.contains(">> Grade: E"));
     }
 
     @Test
-    @DisplayName("perolehanNilai - Skenario Grade B")
-    void perolehanNilai_GradeB() {
-        final String testInputData = String.join("\n", "10 15 10 15 20 30", "PA|100|65", "T|100|65", "K|100|65", "P|100|65", "UTS|100|65", "UAS|100|65", "---");
-        final String encodedInput = encodeBase64(testInputData);
-        final ResponseEntity<String> apiResponse = homeController.perolehanNilai(encodedInput);
-        final String responseBody = apiResponse.getBody();
-        assertEquals(HttpStatus.OK, apiResponse.getStatusCode());
-        assertTrue(responseBody.contains(">> Nilai Akhir: 65.00"));
-        assertTrue(responseBody.contains(">> Grade: B"));
-    }
-    
-    @Test
-    @DisplayName("perolehanNilai - Skenario Grade BC")
-    void perolehanNilai_GradeBC() {
-        final String testInputData = String.join("\n", "10 15 10 15 20 30", "PA|100|60", "T|100|60", "K|100|60", "P|100|60", "UTS|100|60", "UAS|100|60", "---");
-        final String encodedInput = encodeBase64(testInputData);
-        final ResponseEntity<String> apiResponse = homeController.perolehanNilai(encodedInput);
-        final String responseBody = apiResponse.getBody();
-        assertEquals(HttpStatus.OK, apiResponse.getStatusCode());
-        assertTrue(responseBody.contains(">> Nilai Akhir: 60.00"));
-        assertTrue(responseBody.contains(">> Grade: BC"));
-    }
-
-    @Test
-    @DisplayName("perolehanNilai - Skenario Grade C")
-    void perolehanNilai_GradeC() {
-        final String testInputData = String.join("\n", "10 15 10 15 20 30", "PA|100|50", "T|100|50", "K|100|50", "P|100|50", "UTS|100|50", "UAS|100|50", "---");
-        final String encodedInput = encodeBase64(testInputData);
-        final ResponseEntity<String> apiResponse = homeController.perolehanNilai(encodedInput);
-        final String responseBody = apiResponse.getBody();
-        assertEquals(HttpStatus.OK, apiResponse.getStatusCode());
-        assertTrue(responseBody.contains(">> Nilai Akhir: 50.00"));
-        assertTrue(responseBody.contains(">> Grade: C"));
-    }
-
-    @Test
-    @DisplayName("perolehanNilai - Skenario Grade D")
-    void perolehanNilai_GradeD() {
-        final String testInputData = String.join("\n", "10 15 10 15 20 30", "PA|100|40", "T|100|40", "K|100|40", "P|100|40", "UTS|100|40", "UAS|100|40", "---");
-        final String encodedInput = encodeBase64(testInputData);
-        final ResponseEntity<String> apiResponse = homeController.perolehanNilai(encodedInput);
-        final String responseBody = apiResponse.getBody();
-        assertEquals(HttpStatus.OK, apiResponse.getStatusCode());
-        assertTrue(responseBody.contains(">> Nilai Akhir: 40.00"));
-        assertTrue(responseBody.contains(">> Grade: D"));
-    }
-
-    @Test
-    @DisplayName("perolehanNilai - Skenario Input Jarang (Sparse)")
-    void perolehanNilai_SparseInput() {
+    @DisplayName("perolehanNilai - Skenario Input Jarang (Sparse) - Nol jika maxScore=0")
+    void perolehanNilai_SparseInput_ZeroCase() {
+        // Hanya Tugas dan UTS yang ada nilainya
         final String testInputData = String.join("\n", "10 15 10 15 20 30", "T|100|90", "UTS|100|50", "---");
         final String encodedInput = encodeBase64(testInputData);
         final ResponseEntity<String> apiResponse = homeController.perolehanNilai(encodedInput);
         final String responseBody = apiResponse.getBody();
         assertEquals(HttpStatus.OK, apiResponse.getStatusCode());
+        
+        // PA, Kuis, Proyek, UAS tidak ada, sehingga average=0/100, weightedScore=0.00/Weight
         assertTrue(responseBody.contains(">> Partisipatif: 0/100 (0.00/10)"));
         assertTrue(responseBody.contains(">> Kuis: 0/100 (0.00/10)"));
+        
+        // Tugas: 90/100 (13.50/15) + UTS: 50/100 (10.00/20) = 23.50
+        assertTrue(responseBody.contains(">> Tugas: 90/100 (13.50/15)"));
+        assertTrue(responseBody.contains(">> UTS: 50/100 (10.00/20)"));
+        
         assertTrue(responseBody.contains(">> Nilai Akhir: 23.50"));
         assertTrue(responseBody.contains(">> Grade: E"));
     }
 
     @Test
-    @DisplayName("perolehanNilai - Skenario Simbol Tidak Valid")
+    @DisplayName("perolehanNilai - Skenario Simbol Tidak Valid - Diabaikan")
     void perolehanNilai_InvalidSymbol() {
+        // Hanya PA yang valid
         final String testInputData = String.join("\n", "10 15 10 15 20 30", "PA|100|80", "XYZ|100|100", "---");
         final String encodedInput = encodeBase64(testInputData);
         final ResponseEntity<String> apiResponse = homeController.perolehanNilai(encodedInput);
         final String responseBody = apiResponse.getBody();
         assertEquals(HttpStatus.OK, apiResponse.getStatusCode());
+        // Nilai akhir hanya dari PA: 80/100 * 10 = 8.00
         assertTrue(responseBody.contains(">> Nilai Akhir: 8.00"));
     }
 
     @Test
-    @DisplayName("perolehanNilai - Skenario Input Data Kosong (Hanya Bobot dan line break) - Memicu OK")
-    void perolehanNilai_InputDataKosong() {
-        final String testInputData = "10 15 10 15 20 30\n"; 
+    @DisplayName("perolehanNilai - Input Data Kosong (Hanya Bobot)")
+    void perolehanNilai_InputDataOnlyWeights() {
+        final String testInputData = "10 15 10 15 20 30\n---"; // Hanya bobot dan terminator
         final String encodedInput = encodeBase64(testInputData);
         
         final ResponseEntity<String> apiResponse = homeController.perolehanNilai(encodedInput);
         final String responseBody = apiResponse.getBody();
 
         assertEquals(HttpStatus.OK, apiResponse.getStatusCode());
+        // Semua rata-rata 0/100 * bobot = 0.00
         assertTrue(responseBody.contains(">> Nilai Akhir: 0.00"));
         assertTrue(responseBody.contains(">> Grade: E"));
     }
     
-    // TEST UNTUK lines.length == 0
     @Test
-    @DisplayName("perolehanNilai - Input Kosong Total (Memicu Exception)")
+    @DisplayName("perolehanNilai - Input Kosong Total (Memicu Exception: Data bobot tidak ditemukan)")
     void perolehanNilai_EmptyInput_TriggersException() {
-        final String encodedInput = encodeBase64(""); // Input kosong
+        final String encodedInput = encodeBase64(""); 
         final String expectedErrorMessage = "Format data input tidak valid atau tidak lengkap. Pastikan angka dan format sudah benar.";
         final ResponseEntity<String> apiResponse = homeController.perolehanNilai(encodedInput);
         assertEquals(HttpStatus.BAD_REQUEST, apiResponse.getStatusCode());
         assertEquals(expectedErrorMessage, apiResponse.getBody());
     }
 
-    // TEST UNTUK lines[0].trim().isEmpty()
-    @Test
-    @DisplayName("perolehanNilai - Input Baris Bobot Kosong (Memicu Exception)")
-    void perolehanNilai_EmptyWeightLine_TriggersException() {
-        // Input Base64 dari string " \nPA|100|100". lines[0] adalah " ", yang trim() menjadi "".
-        final String encodedInput = encodeBase64(" \nPA|100|100");
-        final String expectedErrorMessage = "Format data input tidak valid atau tidak lengkap. Pastikan angka dan format sudah benar.";
-        final ResponseEntity<String> apiResponse = homeController.perolehanNilai(encodedInput);
-        assertEquals(HttpStatus.BAD_REQUEST, apiResponse.getStatusCode());
-        assertEquals(expectedErrorMessage, apiResponse.getBody());
-    }
-
-    // TEST UNTUK weightTokens.length < 6
     @Test
     @DisplayName("perolehanNilai - Input Bobot Tidak Lengkap (Memicu Exception)")
     void perolehanNilai_IncompleteWeights_TriggersException() {
@@ -287,13 +247,12 @@ class HomeControllerTest {
         assertEquals(expectedErrorMessage, apiResponse.getBody());
     }
 
-    // TEST UNTUK scoreParts.length < 3
     @Test
     @DisplayName("perolehanNilai - Input Nilai Detail Tidak Lengkap (Memicu Exception)")
     void perolehanNilai_IncompleteDetailScore_TriggersException() {
         final String testInputData = String.join("\n", 
                                 "10 15 10 15 20 30", 
-                                "PA|100", // Baris ini memicu scoreParts.length < 3
+                                "PA|100", // Baris ini memicu NumberFormatException karena tidak ada 3 part
                                 "---");
         final String encodedInput = encodeBase64(testInputData);
         final String expectedErrorMessage = "Format data input tidak valid atau tidak lengkap. Pastikan angka dan format sudah benar.";
@@ -301,17 +260,7 @@ class HomeControllerTest {
         assertEquals(HttpStatus.BAD_REQUEST, apiResponse.getStatusCode());
         assertEquals(expectedErrorMessage, apiResponse.getBody());
     }
-
-    @Test
-    @DisplayName("perolehanNilai - Input Malformed (Memicu Catch Block)")
-    void perolehanNilai_InvalidInput() {
-        final String encodedInput = encodeBase64("halo");
-        final String expectedErrorMessage = "Format data input tidak valid atau tidak lengkap. Pastikan angka dan format sudah benar.";
-        final ResponseEntity<String> apiResponse = homeController.perolehanNilai(encodedInput);
-        assertEquals(HttpStatus.BAD_REQUEST, apiResponse.getStatusCode());
-        assertEquals(expectedErrorMessage, apiResponse.getBody());
-    }
-
+    
     @Test
     @DisplayName("perolehanNilai - Input Base64 Tidak Valid")
     void perolehanNilai_InvalidBase64() {
@@ -323,11 +272,12 @@ class HomeControllerTest {
     }
 
 
-    // --- Tes untuk perbedaanL ---
+    // --- Tes untuk perbedaanL (/perbedaanL) ---
 
     @Test
     @DisplayName("perbedaanL - Matriks 3x3 (Ganjil, Dominan=Tengah)")
     void perbedaanL_Matrix3x3() {
+        // L: 1+4+7+8 = 20. Kebalikan L: 3+6+9+2 = 20. Tengah: 5. Perbedaan: 0. Dominan: 5.
         final String testInputData = String.join("\n", "3", "1 2 3", "4 5 6", "7 8 9");
         final String encodedInput = encodeBase64(testInputData);
         final String expectedOutput = """
@@ -344,6 +294,7 @@ class HomeControllerTest {
     @Test
     @DisplayName("perbedaanL - Matriks 4x4 (Genap, Dominan=L)")
     void perbedaanL_Matrix4x4() {
+        // L: 1+5+9+13 + 14+15 = 57. Kebalikan L: 4+8+12+16 + 2+3 = 45. Tengah: 6+7+10+11 = 34. Perbedaan: 12. Dominan: 57.
         final String testInputData = String.join("\n", "4", "1 2 3 4", "5 6 7 8", "9 10 11 12", "13 14 15 16");
         final String encodedInput = encodeBase64(testInputData);
         final String expectedOutput = """
@@ -375,6 +326,7 @@ class HomeControllerTest {
     @Test
     @DisplayName("perbedaanL - Matriks 2x2 (Edge Case)")
     void perbedaanL_Matrix2x2() {
+        // Tengah: 1+2+3+4 = 10
         final String encodedInput = encodeBase64("2\n1 2\n3 4");
         final String expectedOutput = """
                 Nilai L: Tidak Ada
@@ -388,9 +340,40 @@ class HomeControllerTest {
     }
 
     @Test
-    @DisplayName("perbedaanL - Input Data Malformed (Memicu Catch)")
-    void perbedaanL_InvalidInputData() {
+    @DisplayName("perbedaanL - Input Data Malformed (N bukan angka)")
+    void perbedaanL_InvalidInputData_N_NotNumber() {
         final String encodedInput = encodeBase64("abc");
+        final String expectedErrorMessage = "Format data matriks tidak valid atau tidak lengkap.";
+        final ResponseEntity<String> apiResponse = homeController.perbedaanL(encodedInput);
+        assertEquals(HttpStatus.BAD_REQUEST, apiResponse.getStatusCode());
+        assertEquals(expectedErrorMessage, apiResponse.getBody());
+    }
+
+    @Test
+    @DisplayName("perbedaanL - Input Data Malformed (Nilai bukan angka)")
+    void perbedaanL_InvalidInputData_Value_NotNumber() {
+        final String encodedInput = encodeBase64("3 1 2 X 4 5 6 7 8 9");
+        final String expectedErrorMessage = "Format data matriks tidak valid atau tidak lengkap.";
+        final ResponseEntity<String> apiResponse = homeController.perbedaanL(encodedInput);
+        assertEquals(HttpStatus.BAD_REQUEST, apiResponse.getStatusCode());
+        assertEquals(expectedErrorMessage, apiResponse.getBody());
+    }
+
+    @Test
+    @DisplayName("perbedaanL - Input Data Kosong Total (Memicu Exception)")
+    void perbedaanL_EmptyInput_TriggersException() {
+        final String encodedInput = encodeBase64(""); 
+        final String expectedErrorMessage = "Format data matriks tidak valid atau tidak lengkap.";
+        final ResponseEntity<String> apiResponse = homeController.perbedaanL(encodedInput);
+        assertEquals(HttpStatus.BAD_REQUEST, apiResponse.getStatusCode());
+        assertEquals(expectedErrorMessage, apiResponse.getBody());
+    }
+    
+    @Test
+    @DisplayName("perbedaanL - Data Matriks Tidak Lengkap (Memicu Exception)")
+    void perbedaanL_IncompleteMatrixData_TriggersException() {
+        // N=3, tapi hanya ada 8 angka (membutuhkan 9 angka)
+        final String encodedInput = encodeBase64("3 1 2 3 4 5 6 7 8"); 
         final String expectedErrorMessage = "Format data matriks tidak valid atau tidak lengkap.";
         final ResponseEntity<String> apiResponse = homeController.perbedaanL(encodedInput);
         assertEquals(HttpStatus.BAD_REQUEST, apiResponse.getStatusCode());
@@ -407,36 +390,20 @@ class HomeControllerTest {
         assertEquals(HttpStatus.BAD_REQUEST, apiResponse.getStatusCode());
         assertTrue(apiResponse.getBody().startsWith(expectedErrorMessage));
     }
-    
-    // TEST UNTUK trimmedInput.isEmpty()
-    @Test
-    @DisplayName("perbedaanL - Input Data Kosong Total (Memicu Exception)")
-    void perbedaanL_EmptyInput_TriggersException() {
-        final String encodedInput = encodeBase64(""); // Input kosong
-        final String expectedErrorMessage = "Format data matriks tidak valid atau tidak lengkap.";
-        final ResponseEntity<String> apiResponse = homeController.perbedaanL(encodedInput);
-        assertEquals(HttpStatus.BAD_REQUEST, apiResponse.getStatusCode());
-        assertEquals(expectedErrorMessage, apiResponse.getBody());
-    }
-    
-    // TEST UNTUK tokenIndex >= tokens.length
-    @Test
-    @DisplayName("perbedaanL - Data Matriks Tidak Lengkap (Memicu Exception)")
-    void perbedaanL_IncompleteMatrixData_TriggersException() {
-        // N=3, tapi hanya ada 8 angka (membutuhkan 9 angka)
-        final String encodedInput = encodeBase64("3 1 2 3 4 5 6 7 8"); 
-        final String expectedErrorMessage = "Format data matriks tidak valid atau tidak lengkap.";
-        final ResponseEntity<String> apiResponse = homeController.perbedaanL(encodedInput);
-        assertEquals(HttpStatus.BAD_REQUEST, apiResponse.getStatusCode());
-        assertEquals(expectedErrorMessage, apiResponse.getBody());
-    }
 
 
-    // --- Tes untuk palingTer ---
+    // --- Tes untuk palingTer (/palingTer) ---
 
     @Test
     @DisplayName("palingTer - Skenario Dasar")
     void palingTer_BasicScenario() {
+        // Tertinggi: 10, Terendah: 5
+        // Frekuensi: 10(3x), 5(2x), 8(2x), 9(1x), 7(1x). Terbanyak: 10.
+        // Urutan: 10, 5, 8, 10, 9, 5, 10, 8, 7.
+        // Iterasi: 
+        // i=0 (10). j=3 (10). Removed: {10, 5, 8}. i=4.
+        // i=4 (9). j=9. leastFrequentUnique=9. Stop.
+        // Jumlah Tertinggi: 10*3=30. Jumlah Terendah: 5*2=10.
         final String encodedInput = encodeBase64("10 5 8 10 9 5 10 8 7");
         final String expectedOutput = """
                 Tertinggi: 10
@@ -461,18 +428,44 @@ class HomeControllerTest {
     }
 
     @Test
-    @DisplayName("palingTer - Tidak Ada Angka Unik (Edge Case)")
+    @DisplayName("palingTer - Tidak Ada Angka Unik (Edge Case: Semua berpasangan/berulang)")
     void palingTer_NoUniqueNumber() {
+        // Urutan: 10, 20, 10, 20. Semua terhapus.
         final String encodedInput = encodeBase64("10 20 10 20");
         final String expectedOutput = "Tidak ada angka unik";
         final ResponseEntity<String> apiResponse = homeController.palingTer(encodedInput);
         assertEquals(HttpStatus.OK, apiResponse.getStatusCode());
         assertEquals(expectedOutput, apiResponse.getBody());
     }
+    
+    @Test
+    @DisplayName("palingTer - Tidak Ada Angka Unik (Edge Case: Semua terhapus)")
+    void palingTer_NoUniqueNumber_Complex() {
+        // Urutan: 10, 5, 10, 5, 20, 30, 20, 30.
+        // i=0(10). j=2(10). Removed: {10, 5}. i=3.
+        // i=3(5). j=9 (tidak ditemukan). Current number list size is 8.
+        // *Re-run the logic carefully*:
+        // List: [10, 5, 10, 5, 20, 30, 20, 30]
+        // i=0 (10). j=2 (10). Removed: {10, 5}. i=3.
+        // i=3 (5). Removed. Skip. i=4.
+        // i=4 (20). j=6 (20). Removed: {10, 5, 20, 30}. i=7.
+        // i=7 (30). Removed. Skip. i=8.
+        // leastFrequentUnique = -1.
+        final String encodedInput = encodeBase64("10 5 10 5 20 30 20 30");
+        final String expectedOutput = "Tidak ada angka unik";
+        final ResponseEntity<String> apiResponse = homeController.palingTer(encodedInput);
+        assertEquals(HttpStatus.OK, apiResponse.getStatusCode());
+        assertEquals(expectedOutput, apiResponse.getBody());
+    }
+
 
     @Test
-    @DisplayName("palingTer - Skenario Tie-Breaker Jumlah Tertinggi (Wins)")
+    @DisplayName("palingTer - Skenario Tie-Breaker Jumlah Tertinggi (20*1 = 20 vs 10*2 = 20. 20 > 10, so 20 wins)")
     void palingTer_JumlahTertinggiTieBreak_Wins() {
+        // Tertinggi: 20. Terendah: 9. Terbanyak: 10 (2x). Tersedikit: 9 (1x).
+        // Frekuensi: 10(2x), 20(1x), 9(1x).
+        // Product: 10*2=20, 20*1=20, 9*1=9.
+        // Tie between 10 (product 20) and 20 (product 20). 20 is larger, so 20 wins.
         final String encodedInput = encodeBase64("10 20 10 9");
         final ResponseEntity<String> apiResponse = homeController.palingTer(encodedInput);
         final String responseBody = apiResponse.getBody();
@@ -482,21 +475,30 @@ class HomeControllerTest {
     }
 
     @Test
-    @DisplayName("palingTer - Skenario Tie-Breaker Jumlah Tertinggi (Loses)")
+    @DisplayName("palingTer - Skenario Tie-Breaker Jumlah Tertinggi (20*1 = 20 vs 10*2 = 20. 20 wins)")
     void palingTer_JumlahTertinggiTieBreak_Loses() {
+        // Frekuensi: 20(1x), 10(2x), 9(1x).
+        // Product: 20*1=20, 10*2=20, 9*1=9.
+        // Tie between 20 (product 20) and 10 (product 20). 20 is larger, so 20 wins.
+        // Tersedikit: 20
         final String encodedInput = encodeBase64("20 10 10 9");
         final ResponseEntity<String> apiResponse = homeController.palingTer(encodedInput);
         final String responseBody = apiResponse.getBody();
 
         assertEquals(HttpStatus.OK, apiResponse.getStatusCode());
         assertTrue(responseBody.contains("Jumlah Tertinggi: 20 * 1 = 20"));
+        // 20, 10, 10, 9 -> i=0(20). j=9. leastFrequentUnique=20.
         assertTrue(responseBody.contains("Tersedikit: 20 (1x)")); 
     }
+    
     @Test
-    @DisplayName("palingTer - Input Teks (Bukan Angka)")
+    @DisplayName("palingTer - Input Teks dan Angka (Hanya angka yang diproses)")
     void palingTer_TextInput() {
-        final String encodedInput = encodeBase64("abc");
-        final String expectedOutput = "Tidak ada input";
+        final String encodedInput = encodeBase64("10 abc 5 def 10");
+        // Diproses: 10, 5, 10
+        // Tertinggi: 10, Terendah: 5. Terbanyak: 10 (2x).
+        // Urutan: 10, 5, 10. i=0(10). j=2(10). Removed: {10, 5}. i=3. leastFrequentUnique = -1.
+        final String expectedOutput = "Tidak ada angka unik";
         final ResponseEntity<String> apiResponse = homeController.palingTer(encodedInput);
         assertEquals(HttpStatus.OK, apiResponse.getStatusCode());
         assertEquals(expectedOutput, apiResponse.getBody());

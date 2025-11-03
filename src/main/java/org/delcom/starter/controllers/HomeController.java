@@ -163,28 +163,35 @@ public class HomeController {
         return outputBuilder.toString();
     }
 
+// ... (Bagian di HomeController.java) ...
+
     /**
      * Logika inti untuk Studi Kasus 2: Perolehan Nilai.
-     * Menggunakan String.split() sebagai pengganti Scanner.
      */
     private String processNilai(final String input) {
         final StringBuilder scoreResultBuilder = new StringBuilder();
-        final String[] lines = input.split("\\R"); // Split by any line break sequence
-
-        // SOLUSI MC/DC: Memisahkan kondisi OR menjadi dua IF terpisah.
-        if (lines.length == 0) {
-            throw new NoSuchElementException("Data bobot tidak ditemukan.");
+        final String trimmedInput = input.trim();
+        final String[] lines = trimmedInput.split("\\R"); 
+        
+        // Mengecek array kosong ATAU jika array hanya berisi string kosong 
+        // (yang merupakan kasus dari input " " setelah split)
+        // Jika input.trim().isEmpty() adalah TRUE, maka lines.length pasti 0.
+        // Namun karena split("\\R") pada string kosong menghasilkan array [""] (length=1),
+        // kita pakai pengecekan yang lebih robust.
+        if (trimmedInput.isEmpty()) { 
+             throw new NoSuchElementException("Data bobot tidak ditemukan.");
         }
-        if (lines[0].trim().isEmpty()) {
-            throw new NoSuchElementException("Data bobot tidak ditemukan.");
-        }
-
+        
+        // Karena kita sudah memastikan trimmedInput tidak kosong, kita hanya perlu 
+        // melanjutkan dengan array lines.
+        
         try {
             // Membaca Bobot (Line 1)
             final String[] weightTokens = lines[0].trim().split("\\s+");
             if (weightTokens.length < 6) {
                 throw new NoSuchElementException("Data bobot tidak lengkap.");
             }
+// ... (sisa kode processNilai) ...
             final int weightPA = Integer.parseInt(weightTokens[0]);
             final int weightAssignment = Integer.parseInt(weightTokens[1]);
             final int weightQuiz = Integer.parseInt(weightTokens[2]);
@@ -464,4 +471,3 @@ public class HomeController {
         return analysisResult.toString().trim();
     }
 }
-// EOF
