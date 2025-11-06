@@ -2,7 +2,6 @@ package org.delcom.starter.controllers;
 
 import java.util.HashMap;
 import java.util.Locale;
-import java.util.Map;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,22 +15,6 @@ import java.util.Base64;
 @RestController
 public class HomeController {
 
-    // Helper map for informasiNim
-    private static final Map<String, String> PRODI_MAP;
-    static {
-        Map<String, String> map = new HashMap<>();
-        map.put("11S", "Sarjana Informatika");
-        map.put("12S", "Sarjana Sistem Informasi");
-        map.put("14S", "Sarjana Teknik Elektro");
-        map.put("21S", "Sarjana Manajemen Rekayasa");
-        map.put("22S", "Sarjana Teknik Metalurgi");
-        map.put("31S", "Sarjana Teknik Bioproses");
-        map.put("114", "Diploma 4 Teknologi Rekasaya Perangkat Lunak");
-        map.put("113", "Diploma 3 Teknologi Informasi");
-        map.put("133", "Diploma 3 Teknologi Komputer");
-        PRODI_MAP = map; 
-    }
-
     @GetMapping("/")
     public String hello() {
         return "Hay, selamat datang di aplikasi dengan Spring Boot!";
@@ -44,23 +27,32 @@ public class HomeController {
 
     @GetMapping("/informasi-nim") 
         public String informasiNim(@RequestParam String nim) {
-            
+            HashMap<String, String> prodi = new HashMap<>();
+            prodi.put("11S", "Sarjana Informatika");
+            prodi.put("12S", "Sarjana Sistem Informasi");
+            prodi.put("14S", "Sarjana Teknik Elektro");
+            prodi.put("21S", "Sarjana Manajemen Rekayasa");
+            prodi.put("22S", "Sarjana Teknik Metalurgi");
+            prodi.put("31S", "Sarjana Teknik Bioproses");
+            prodi.put("114", "Diploma 4 Teknologi Rekasaya Perangkat Lunak");
+            prodi.put("113", "Diploma 3 Teknologi Informasi");
+            prodi.put("133", "Diploma 3 Teknologi Komputer");
+
             if(nim.length() != 8) {
                 return "NIM harus 8 karakter";
             }
 
             String degreePrefix = nim.substring(0,3);
-            if(!PRODI_MAP.containsKey(degreePrefix)) {
+            if(!prodi.containsKey(degreePrefix)) {
                 return "Program Studi tidak Tersedia";
             }
             String angkatan = nim.substring(3, 5);
             String urutan = nim.substring(5, 8);
-            String prodiPrefix = PRODI_MAP.getOrDefault(degreePrefix, urutan);
+            String prodiPrefix = prodi.getOrDefault(degreePrefix, urutan);
            
             
             int urutanInt = Integer.parseInt(urutan); // Konversi ke integer untuk hapus leading zeros
-            String angkatanTahun = "20" + angkatan;
-            return String.format("Inforamsi NIM %s: >> Program Studi: %s>> Angkatan: %s>> Urutan: %d", nim, prodiPrefix, angkatanTahun, urutanInt);
+            return String.format("Inforamsi NIM %s: >> Program Studi: %s>> Angkatan: 20%s>> Urutan: %d", nim, prodiPrefix, angkatan, urutanInt);
             
         }
     
@@ -69,8 +61,6 @@ public class HomeController {
             String decodedInput = decode(strBase64).trim();
             Locale.setDefault(Locale.US);
             String[] lines = decodedInput.split("\\R");
-
-            // Parsing bobot
             int bobotPA = Integer.parseInt(lines[0].trim());
             int bobotTugas = Integer.parseInt(lines[1].trim());
             int bobotKuis = Integer.parseInt(lines[2].trim());
@@ -91,26 +81,21 @@ public class HomeController {
             
             StringBuilder errorMsg = new StringBuilder();
 
-            // Loop perhitungan nilai
             for(int i = 6; i < lines.length - 1; i++) {
                 String[] parts;
                 parts = lines[i].split("\\|");
                 String kategori = parts[0].trim().toUpperCase();
-                double max = 0;
+                double max = Double.parseDouble(parts[1].trim());
                 double nilai = 0;
-                
                 try {
                     if(parts.length == 2) {
-                        // This case covers the specific "Simbol|Bobot" format error
                         throw new IllegalArgumentException("Data tidak valid. Silahkan menggunakan format: Simbol|Bobot|Perolehan-Nilai\nSimbol tidak dikenal\n");
+                    } else {
+                        nilai = Double.parseDouble(parts[2].trim());
                     }
-                    max = Double.parseDouble(parts[1].trim());
-                    nilai = Double.parseDouble(parts[2].trim());
                 } catch (IllegalArgumentException e) {
-                    // This handles either the specific format error OR a NumberFormatException (subclass of IllegalArgumentException)
                     String msg = e.getMessage().replaceAll("\n","<br/>").trim();
                     errorMsg.append(msg);
-                    continue; 
                 }
 
                 switch (kategori) {
@@ -123,14 +108,13 @@ public class HomeController {
                     default : break;
                 }
             }
-            
              // hitung persentase setiap kategori dengan pembulatan yang tepat
-            double persPA  = (totalMaxPA > 0) ? (int) Math.floor((totalNilaiPA / totalMaxPA) * 100) : 0;
-            double persT   = (totalMaxT > 0) ? (int) Math.floor((totalNilaiT  / totalMaxT) * 100) : 0;
-            double persK   = (totalMaxK > 0) ? (int) Math.floor((totalNilaiK  / totalMaxK) * 100) : 0;
-            double persP   = (totalMaxP > 0) ? (int) Math.floor((totalNilaiP  / totalMaxP) * 100) : 0;
-            double persUTS = (totalMaxUTS > 0) ? (int) Math.floor((totalNilaiUTS / totalMaxUTS) * 100) : 0;
-            double persUAS = (totalMaxUAS > 0) ? (int) Math.floor((totalNilaiUAS / totalMaxUAS) * 100) : 0;
+            double persPA  =  (int) Math.floor((double)totalNilaiPA / totalMaxPA * 100);
+            double persT   =  (int) Math.floor((double)totalNilaiT  / totalMaxT  * 100);
+            double persK   =  (int) Math.floor((double)totalNilaiK  / totalMaxK  * 100);
+            double persP   =  (int) Math.floor((double)totalNilaiP  / totalMaxP  * 100);
+            double persUTS =  (int) Math.floor((double)totalNilaiUTS/ totalMaxUTS* 100);
+            double persUAS =  (int) Math.floor((double)totalNilaiUAS/ totalMaxUAS* 100);
 
             // kontribusi ke nilai akhir dengan pembulatan yang tepat
             double nilaiPA  = (int) Math.round(((double) persPA  / 100 * bobotPA) * 100.0) / 100.0;
@@ -139,9 +123,7 @@ public class HomeController {
             double nilaiP   = (int) Math.round(((double) persP   / 100 * bobotProyek) * 100.0) / 100.0;
             double nilaiUTS = (int) Math.round(((double) persUTS / 100 * bobotUTS) * 100.0) / 100.0;
             double nilaiUAS = (int) Math.round(((double) persUAS / 100 * bobotUAS) * 100.0) / 100.0;
-            
-            // Perhitungan nilai akhir dengan pembulatan yang tepat
-            double nilaiAkhir = Math.round((nilaiPA + nilaiT + nilaiK + nilaiP + nilaiUTS + nilaiUAS) * 100.0) / 100.0;
+            double nilaiAkhir = (int) Math.round((double)(nilaiPA + nilaiT + nilaiK + nilaiP + nilaiUTS + nilaiUAS) * 100.0) / 100.0;
 
             // tentukan grade
             String grade;
@@ -152,7 +134,6 @@ public class HomeController {
             else if (nilaiAkhir >= 49.5) grade="C";
             else if (nilaiAkhir >= 34) grade="D";
             else grade="E";
-            
             String output = String.format("Perolehan Nilai:\n>> Partisipatif: %.0f/100 (%.2f/%d)\n>> Tugas: %.0f/100 (%.2f/%d)\n>> Kuis: %.0f/100 (%.2f/%d)\n>> Proyek: %.0f/100 (%.2f/%d)\n>> UTS: %.0f/100 (%.2f/%d)\n>> UAS: %.0f/100 (%.2f/%d)\n\n>> Nilai Akhir: %.2f\n>> Grade: %s\n", persPA, nilaiPA, bobotPA, persT, nilaiT, bobotTugas, persK, nilaiK, bobotKuis, persP, nilaiP, bobotProyek, persUTS, nilaiUTS, bobotUTS, persUAS, nilaiUAS, bobotUAS, nilaiAkhir, grade);
             output = output.replaceAll("\n", "<br/>").trim();
 
@@ -162,7 +143,12 @@ public class HomeController {
 
             return output;
         }
+
+        // Helper perolehan-nilai
+
     
+
+
     @GetMapping("/perbedaan-l")
     public String perbedaanL(@RequestParam String strBase64) {
         String decodedInput = decode(strBase64).trim();
@@ -180,8 +166,11 @@ public class HomeController {
 
         if (x == 1) {
             int angka_tengah = a[0][0];
-            String outputFormat = "Nilai L: Tidak Ada\nNilai Kebalikan L: Tidak Ada\nNilai Tengah: %d\nPerbedaan: Tidak Ada\nDominan: %d\n";
-            String output = String.format(outputFormat, angka_tengah, angka_tengah);
+            String output = "Nilai L: Tidak Ada\n" +
+                   "Nilai Kebalikan L: Tidak Ada\n" +
+                   "Nilai Tengah: " + angka_tengah + "\n" +
+                   "Perbedaan: Tidak Ada\n" +
+                   "Dominan: " + angka_tengah + "\n";
             output = output.replaceAll("\n", "<br/>").trim();
             return output;
         } else if (x == 2) {
@@ -191,24 +180,21 @@ public class HomeController {
                  jumlah += a[b][c];
                 }
             }
-            String outputFormat = "Nilai L: Tidak Ada\nNilai Kebalikan L: Tidak Ada\nNilai Tengah: %d\nPerbedaan: Tidak Ada\nDominan: %d\n";
-            String output = String.format(outputFormat, jumlah, jumlah);
+            String output = "Nilai L: Tidak Ada\n" +
+                   "Nilai Kebalikan L: Tidak Ada\n" +
+                   "Nilai Tengah: " + jumlah + "\n" +
+                   "Perbedaan: Tidak Ada\n" +
+                   "Dominan: " + jumlah + "\n";
             output = output.replaceAll("\n", "<br/>").trim();
             return output;
         } else {
-            // Calculate L-shape
             int nilai_bentuk_L = 0;
-            // Sum first column (a[i][0])
             for (int i = 0; i < x; i++) nilai_bentuk_L += a[i][0];
-            // Sum bottom row excluding the corners
-            for (int j = 1; j < x - 1; j++) nilai_bentuk_L += a[x - 1][j];
+            for (int j = 1; j <= x - 2; j++) nilai_bentuk_L += a[x - 1][j];
     
-            // Calculate Reverse L-shape
             int nilai_kebalikan_bentuk_L = 0;
-            // Sum last column (a[i][x-1])
             for (int i = 0; i < x; i++) nilai_kebalikan_bentuk_L += a[i][x - 1];
-            // Sum top row excluding the corners
-            for (int j = 1; j < x - 1; j++) nilai_kebalikan_bentuk_L += a[0][j];
+            for (int j = 1; j <= x - 2; j++) nilai_kebalikan_bentuk_L += a[0][j];
     
             int angka_tengah;
             if (x % 2 == 1) {
@@ -223,10 +209,12 @@ public class HomeController {
             int selisih = Math.abs(nilai_bentuk_L - nilai_kebalikan_bentuk_L);
             int nilai_dominan = (selisih == 0) ? angka_tengah :
                                 Math.max(nilai_bentuk_L, nilai_kebalikan_bentuk_L);
-            
-            // Use unified String.format for clean output generation
-            String outputFormat = "Nilai L: %d\nNilai Kebalikan L: %d\nNilai Tengah: %d\nPerbedaan: %d\nDominan: %d\n";
-            String output = String.format(outputFormat, nilai_bentuk_L, nilai_kebalikan_bentuk_L, angka_tengah, selisih, nilai_dominan);
+    
+            String output = "Nilai L: " + nilai_bentuk_L + "\n" +
+                   "Nilai Kebalikan L: " + nilai_kebalikan_bentuk_L + "\n" +
+                   "Nilai Tengah: " + angka_tengah + "\n" +
+                   "Perbedaan: " + selisih + "\n" +
+                   "Dominan: " + nilai_dominan + "\n";
             output = output.replaceAll("\n", "<br/>").trim();
             return output;
         }
@@ -359,8 +347,8 @@ public class HomeController {
     
     
 
-    // Helper method
-    private static String decode(String base64) {
+    // Helper 
+    public static String decode(String base64) {
         return new String(Base64.getDecoder().decode(base64));
     }
 }

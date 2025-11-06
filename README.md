@@ -6,7 +6,8 @@
 
 - Melakukan inisialisasi proyek
 - Menambahkan method `sayHello()` pada HomeController
-- Migrasi Kode ke HomeController
+- Migrasi Kode ke HomeController 
+- Tambahan
 = Menambahkan pengujian untuk method `sayHello()`
 
 
