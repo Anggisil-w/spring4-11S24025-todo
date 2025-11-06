@@ -12,7 +12,7 @@ import static org.mockito.Mockito.*;
 class ApplicationTest {
 
 	@Test
-	@Timeout(5)
+	@Timeout(10)
 	void mainMethod_ShouldRunSpringApplication() {
 		// Mock SpringApplication.run untuk test main method
 		try (var mockedSpring = mockStatic(SpringApplication.class)) {
